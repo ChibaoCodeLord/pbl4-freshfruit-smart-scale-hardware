@@ -126,20 +126,203 @@
 //   delay(200);
 // }
 
+// #include "HX711.h"
+// #include <ESP8266WiFi.h>
+// #include <ESP8266HTTPClient.h>
+// #include <WiFiClientSecure.h>
+// #include <ArduinoJson.h>
+// #include <Wire.h>
+// #include <LiquidCrystal_I2C.h>
+
+// // ================= WIFI =================
+// const char* ssid     = "NGOC HOA";
+// const char* password = "home1234";
+
+// // ================= API =================
+// String weightAPI = "http://192.168.1.14:5000/weight";   // HTTP OK
+// String fruitAPI  = "https://fruitstore.loca.lt/files/latest-fruit"; // HTTPS
+
+// // ================= HX711 =================
+// #define DOUT D5
+// #define CLK  D6
+// HX711 scale;
+// float calibration_factor = 425.24;
+
+// // ================= LCD =================
+// LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// // ================= GLOBAL =================
+// float currentWeight = 0.0;
+// String fruitName = "Waiting";
+
+// // ================= TIMER =================
+// unsigned long tReadWeight = 0;
+// unsigned long tSendWeight = 0;
+// unsigned long tPullFruit  = 0;
+
+// // ================= FRUIT =================
+// unsigned long fruitWaitStart = 0;
+// bool fruitReceived = false;
+// bool allowPullFruit = false;
+
+// // ================= SETUP =================
+// void setup() {
+//   Serial.begin(115200);
+
+//   lcd.init();
+//   lcd.backlight();
+//   lcd.print("Connecting WiFi");
+
+//   WiFi.begin(ssid, password);
+//   while (WiFi.status() != WL_CONNECTED) {
+//     delay(500);
+//     lcd.print(".");
+//   }
+
+//   lcd.clear();
+//   lcd.print("WiFi Connected");
+//   delay(1000);
+//   lcd.clear();
+
+//   scale.begin(DOUT, CLK);
+//   scale.set_scale(calibration_factor);
+//   scale.tare();
+
+//   lcd.print("Loadcell Ready");
+//   delay(1000);
+//   lcd.clear();
+
+//   Serial.println("✅ SYSTEM READY");
+// }
+
+// // ================= READ WEIGHT =================
+// void taskReadWeight() {
+//   if (millis() - tReadWeight < 200) return;
+//   tReadWeight = millis();
+
+//   if (scale.is_ready()) {
+//     float w = scale.get_units(3) / 1000.0;
+//     if (abs(w) < 0.05) w = 0;
+//     currentWeight = abs(w);
+//   }
+// }
+
+// // ================= SEND WEIGHT =================
+// void taskSendWeight() {
+//   if (millis() - tSendWeight < 500) return;
+//   tSendWeight = millis();
+
+//   WiFiClient client;
+//   HTTPClient http;
+
+//   http.begin(client, weightAPI);
+//   http.addHeader("Content-Type", "application/json");
+
+//   String payload = "{\"weight\":" + String(currentWeight, 2) + "}";
+//   int code = http.POST(payload);
+//   http.end();
+
+//   if (code == 200) {
+//     Serial.println("📤 Weight sent");
+
+//     fruitWaitStart = millis();
+//     fruitReceived = false;
+//     allowPullFruit = true;
+//     fruitName = "Detecting";
+//   }
+// }
+
+// // ================= PULL FRUIT (HTTPS) =================
+// void taskPullFruit() {
+//   if (!allowPullFruit) return;
+
+//   // timeout 1s
+//   if (!fruitReceived && millis() - fruitWaitStart > 1000) {
+//     fruitName = "None";
+//     allowPullFruit = false;
+//     return;
+//   }
+
+//   if (millis() - tPullFruit < 800) return;
+//   tPullFruit = millis();
+
+//   WiFiClientSecure client;
+//   client.setInsecure();   // 🔥 BẮT BUỘC CHO HTTPS
+
+//   HTTPClient http;
+//   http.begin(client, fruitAPI);
+
+//   int code = http.GET();
+//   Serial.println("🌐 HTTPS CODE: " + String(code));
+
+//   if (code == 200) {
+//     String res = http.getString();
+//     Serial.println("📥 " + res);
+
+//     StaticJsonDocument<256> doc;
+//     if (deserializeJson(doc, res) == DeserializationError::Ok) {
+//       if (String(doc["status"]) == "success") {
+//         fruitName = doc["fruit_name"].as<String>();
+//         fruitReceived = true;
+//         allowPullFruit = false;
+//         Serial.println("🍎 Fruit:" + fruitName);
+//       }
+//     }
+//   }
+
+//   http.end();
+// }
+
+// // ================= LCD =================
+// void updateLCD() {
+//   lcd.setCursor(0, 0);
+//   lcd.print("Fruit:");
+//   lcd.print(fruitName);
+//   lcd.print("        ");
+
+//   lcd.setCursor(0, 1);
+//   lcd.print("Weight: ");
+//   lcd.print(currentWeight, 2);
+//   lcd.print("kg   ");
+// }
+
+// // ================= LOOP =================
+// void loop() {
+//   if (WiFi.status() != WL_CONNECTED) {
+//     lcd.clear();
+//     lcd.print("WiFi Lost");
+//     WiFi.reconnect();
+//     delay(1000);
+//     return;
+//   }
+
+//   taskReadWeight();
+//   taskSendWeight();
+
+//   taskPullFruit();
+   
+//    updateLCD();
+
+//   delay(30);
+// }
+
+
+
 #include "HX711.h"
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
-#include <ArduinoJson.h>  // 📦 BẮT BUỘC: Cài thư viện ArduinoJson
+#include <WiFiClientSecure.h>
+#include <ArduinoJson.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
 // ================= WIFI =================
-const char* ssid     = "NGOC HOA";
-const char* password = "home1234";
+const char* ssid     = "<3";
+const char* password = "chibaosayhu";
 
-// ================= SERVER BACKEND =================
-String backendAPI = "https://fruitstore.loca.lt/files/latest-fruit";  // API lấy kết quả
-String weightAPI = "http://192.168.1.14:5000/weight";  // Gửi cân lên Flask
+// ================= API =================
+String weightAPI = "http://172.20.10.13:5000/weight";
+String fruitAPI  = "https://optics-habitat-wireless-longitude.trycloudflare.com/files/latest-fruit";
 
 // ================= HX711 =================
 #define DOUT D5
@@ -150,77 +333,74 @@ float calibration_factor = 425.24;
 // ================= LCD =================
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// ================= BIẾN TOÀN CỤC =================
+// ================= GLOBAL =================
 float currentWeight = 0.0;
-String fruitName = "Chờ...";
-unsigned long lastWeightSend = 0;
-unsigned long lastFruitCheck = 0;
+String fruitName = "None";
 
 // ================= TIMER =================
 unsigned long tReadWeight = 0;
 unsigned long tSendWeight = 0;
-unsigned long tPullFruit = 0;
+unsigned long tPullFruit  = 0;
 
-// ================= FRUIT TIMEOUT =================
-unsigned long fruitWaitStart = 0;
-bool fruitReceived = false;
+// ================= CONTROL =================
+int weightSendCount = 0;
+bool allowPullFruit = false;
+
+#define WEIGHT_THRESHOLD 0.05
 
 // ================= SETUP =================
 void setup() {
   Serial.begin(115200);
 
-  // LCD
   lcd.init();
   lcd.backlight();
   lcd.print("Connecting WiFi");
 
-  // WiFi
   WiFi.begin(ssid, password);
-  int retry = 0;
-  while (WiFi.status() != WL_CONNECTED && retry < 20) {
-    delay(500);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(300);
     lcd.print(".");
-    retry++;
   }
 
   lcd.clear();
-  if (WiFi.status() == WL_CONNECTED) {
-    lcd.print("WiFi Connected");
-    Serial.println("Connected to " + String(ssid));
-  } else {
-    lcd.print("WiFi Failed");
-    while(1) delay(1000);
-  }
-  delay(1000);
+  lcd.print("WiFi Connected");
+  delay(800);
   lcd.clear();
 
-  // HX711
   scale.begin(DOUT, CLK);
   scale.set_scale(calibration_factor);
   scale.tare();
 
   lcd.print("Loadcell Ready");
-  delay(1000);
+  delay(800);
   lcd.clear();
-  
-  Serial.println("✅ System Ready!");
+
+  Serial.println("✅ SYSTEM READY");
 }
 
-// ================= TASK 1: READ WEIGHT =================
+// ================= READ WEIGHT =================
 void taskReadWeight() {
-  if (millis() - tReadWeight < 200) return;
+  if (millis() - tReadWeight < 150) return;
   tReadWeight = millis();
 
-  if (scale.is_ready()) {
-    float w = scale.get_units(3) / 1000.0;
-    if (abs(w) < 0.05) w = 0;
-    currentWeight = abs(w);
+  if (!scale.is_ready()) return;
+
+  float w = scale.get_units(3) / 1000.0;
+  if (abs(w) < WEIGHT_THRESHOLD) w = 0;
+  currentWeight = abs(w);
+
+  // ===== KHÔNG CÓ VẬT =====
+  if (currentWeight == 0) {
+    fruitName = "None";
+    weightSendCount = 0;
+    allowPullFruit = false;
   }
 }
 
-// ================= TASK 2: SEND WEIGHT =================
+// ================= SEND WEIGHT =================
 void taskSendWeight() {
-  if (millis() - tSendWeight < 500) return;
+  if (currentWeight <= WEIGHT_THRESHOLD) return;
+  if (millis() - tSendWeight < 400) return;
   tSendWeight = millis();
 
   WiFiClient client;
@@ -228,129 +408,84 @@ void taskSendWeight() {
 
   http.begin(client, weightAPI);
   http.addHeader("Content-Type", "application/json");
-  
+
   String payload = "{\"weight\":" + String(currentWeight, 2) + "}";
-  int httpCode = http.POST(payload);
-  
-  if (httpCode == 200) {
-    Serial.println("✅ Weight sent: " + String(currentWeight, 2) + " kg");
-    
-    // 🔹 reset fruit wait timer khi có cân mới
-    fruitWaitStart = millis();
-    fruitReceived = false;
-    fruitName = "Detecting...";
-  } else {
-    Serial.println("❌ Weight send failed: " + String(httpCode));
-  }
-  
+  int code = http.POST(payload);
   http.end();
+
+  if (code == 200) {
+    weightSendCount++;
+    Serial.println("📤 Weight sent (" + String(weightSendCount) + ")");
+
+    // ✅ ĐỦ 3 LẦN → CHỜ FRUIT MỚI
+    if (weightSendCount >= 2) {
+      allowPullFruit = true;
+      weightSendCount = 0;
+
+      // 🔥 QUAN TRỌNG: HIỂN THỊ WAITING (KHÔNG GIỮ FRUIT CŨ)
+      fruitName = "Waiting";
+    }
+  }
 }
 
-// ================= TASK 3: PULL FRUIT NAME FROM BACKEND =================
+// ================= PULL FRUIT =================
 void taskPullFruit() {
-  // ⏱ timeout 1s → show "None"
-  if (!fruitReceived && millis() - fruitWaitStart > 1000) {
-    fruitName = "None";
-  }
-
-  if (millis() - tPullFruit < 1500) return;  // Kiểm tra mỗi 1.5 giây
+  if (!allowPullFruit) return;
+  if (millis() - tPullFruit < 800) return;
   tPullFruit = millis();
 
-  WiFiClient client;
+  WiFiClientSecure client;
+  client.setInsecure();
+
   HTTPClient http;
+  http.begin(client, fruitAPI);
 
-  http.begin(client, backendAPI);
-  int httpCode = http.GET();
+  int code = http.GET();
+  Serial.println("🌐 HTTPS CODE: " + String(code));
 
-  if (httpCode == 200) {
-    String response = http.getString();
-    Serial.println("📥 Backend response: " + response);
+  if (code == 200) {
+    String res = http.getString();
+    StaticJsonDocument<256> doc;
 
-    // Phân tích JSON với ArduinoJson
-    StaticJsonDocument<256> doc;  // Kích thước đủ cho JSON của bạn
-    DeserializationError error = deserializeJson(doc, response);
-    
-    if (!error) {
-      // 🔹 LẤY TÊN QUẢ TỪ JSON - CHÍNH XÁC THEO MẪU CỦA BẠN
-      String status = doc["status"] | "error";
-      String newFruit = doc["fruit_name"] | "unknown";
-      
-      if (status == "success" && newFruit != "unknown") {
-        fruitName = newFruit;
-        fruitReceived = true;
-        Serial.println("🍎 Fruit detected: " + fruitName);
-      } else {
-        fruitName = "None";
-        Serial.println("⚠️ No fruit detected or API error");
+    if (deserializeJson(doc, res) == DeserializationError::Ok) {
+      if (String(doc["status"]) == "success") {
+        fruitName = doc["fruit_name"].as<String>();
+        Serial.println("🍎 Fruit: " + fruitName);
       }
-    } else {
-      Serial.println("❌ JSON parse error: " + String(error.c_str()));
-      fruitName = "Parse Error";
     }
-  } else {
-    Serial.println("❌ Backend API error: " + String(httpCode));
-    fruitName = "API Error";
   }
-  
+
   http.end();
+  allowPullFruit = false;   // pull xong thì tắt
 }
 
-// ================= LCD UPDATE =================
+// ================= LCD =================
 void updateLCD() {
   lcd.setCursor(0, 0);
-  lcd.print("Fruit: ");
-  
-  // Hiển thị tên quả (tối đa 9 ký tự để vừa LCD)
-  String displayFruit = fruitName;
-  if (displayFruit.length() > 9) {
-    displayFruit = displayFruit.substring(0, 9);
-  }
-  lcd.print(displayFruit);
-  
-  // Xóa phần còn lại của dòng
-  for (int i = 7 + displayFruit.length(); i < 16; i++) {
-    lcd.print(" ");
-  }
-  
+  lcd.print("Fruit:");
+  lcd.print(fruitName);
+  lcd.print("        ");
+
   lcd.setCursor(0, 1);
-  lcd.print("Weight: ");
+  lcd.print("Weight:");
   lcd.print(currentWeight, 2);
-  lcd.print("kg");
-  
-  // Xóa phần còn lại của dòng
-  int charsPrinted = 8 + String(currentWeight, 2).length() + 2;
-  for (int i = charsPrinted; i < 16; i++) {
-    lcd.print(" ");
-  }
+  lcd.print("kg   ");
 }
 
 // ================= LOOP =================
 void loop() {
   if (WiFi.status() != WL_CONNECTED) {
     lcd.clear();
-    lcd.print("WiFi Lost!");
+    lcd.print("WiFi Lost");
     WiFi.reconnect();
-    delay(1000);
+    delay(500);
     return;
   }
 
-  taskReadWeight();   // ⚡ Đọc cân liên tục
-  taskSendWeight();   // ⏱ Gửi cân định kỳ
-  taskPullFruit();    // 🔍 Lấy tên quả từ backend
+  taskReadWeight();
+  taskSendWeight();
+  taskPullFruit();
+  updateLCD();
 
-  updateLCD();        // 📺 Cập nhật màn hình
-  delay(50);          // Giảm tải CPU
-}
-
-// ================= HÀM BỔ TRỢ (Debug) =================
-void debugInfo() {
-  static unsigned long lastDebug = 0;
-  if (millis() - lastDebug > 5000) {  // In debug mỗi 5 giây
-    lastDebug = millis();
-    Serial.println("=== DEBUG INFO ===");
-    Serial.println("Fruit: " + fruitName);
-    Serial.println("Weight: " + String(currentWeight, 2) + " kg");
-    Serial.println("WiFi: " + String(WiFi.RSSI()) + " dBm");
-    Serial.println("==================");
-  }
+  yield();   // 🔥 BẮT BUỘC cho ESP8266
 }
